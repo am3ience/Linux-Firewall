@@ -53,6 +53,23 @@ iptables -A FORWARD -p tcp --tcp-flags SYN,FIN SYN,FIN -j DROP
 iptables -A FORWARD -p tcp --dport 23 -j DROP 
 iptables -A FORWARD -p tcp --sport 23 -j DROP 
 
+#Block all external traffic directed to ports 32768-32775, 137-139, TCP ports 111 and 515
+iptables -A FORWARD -i $extnic -o $intnic -p tcp --dport 32768:32775 -j DROP
+iptables -A FORWARD -i $extnic -o $intnic -p tcp --dport 137:139 -j DROP
+iptables -A FORWARD -i $extnic -o $intnic -p udp --dport 32768:32775 -j DROP
+iptables -A FORWARD -i $extnic -o $intnic -p udp --dport 137:139 -j DROP
+iptables -A FORWARD -i $extnic -o $intnic -p tcp --dport 111 -j DROP
+iptables -A FORWARD -i $extnic -o $intnic -p tcp --dport 515 -j DROP
+
+#---------------------------------------------------
+#You must ensure the you reject those connections that are coming the “wrong” way 
+#(i.e., inbound SYN packets to high ports). 
+iptables -A FORWARD -i $extnic -o $intnic -p tcp --tcp-flags ALL SYN ! --dport 0:1023 -j DROP
+
+#---------------------------------------------------
+#Accept Fragments
+iptables -A FORWARD -f -j ACCEPT
+
 #---------------------------------------------------
 #For FTP and SSH services, set control connections to "Minimum Delay" and FTP data to "Maximum Throughput"
 #FTP Data
