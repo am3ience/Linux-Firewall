@@ -13,15 +13,15 @@ read extnic
 
 echo "What TCP service ports would you like to be allowed on the firewall? (list seperated by spaces)"
 echo "ex.) 80 443 HTTP and HTTPS"
-read TCParray
+read -a TCParray
 
 echo "What UDP service ports would you like to be allowed on the firewall? (list seperated by spaces)"
 echo "ex.) 53 68 DNS and DHCP"
-read UDParray
+read -a UDParray
 
 echo "What ICMP service type numbers would you like to be allowed on the firewall? (list seperated by spaces)"
 echo "ex.) 0 3 8 Echo Reply, Destination Unreachable, and Echo"
-read ICMParray
+read -a ICMParray
 
 ### /User Configuration ###
 
@@ -110,20 +110,20 @@ done
 
 #----------------------------------------------------
 #Inbound/Outbound UDP packets on allowed ports
-for element in "${UDParray[@]}"
+for n in "${UDParray[@]}"
 do
-	iptables -A FORWARD -i $intnic -o $extnic -p udp --dport $element -m state --state NEW,ESTABLISHED-j UDP
-	iptables -A FORWARD -i $extnic -o $intnic -p udp --sport $element -m state --state NEW,ESTABLISHED-j UDP
-	iptables -A FORWARD -i $intnic -o $extnic -p udp --sport $element -m state --state NEW,ESTABLISHED-j UDP
-	iptables -A FORWARD -i $extnic -o $intnic -p udp --dport $element -m state --state NEW,ESTABLISHED-j UDP
+	iptables -A FORWARD -i $intnic -o $extnic -p udp --dport $n -m state --state NEW,ESTABLISHED -j UDP
+	iptables -A FORWARD -i $extnic -o $intnic -p udp --sport $n -m state --state NEW,ESTABLISHED -j UDP
+	iptables -A FORWARD -i $intnic -o $extnic -p udp --sport $n -m state --state NEW,ESTABLISHED -j UDP
+	iptables -A FORWARD -i $extnic -o $intnic -p udp --dport $n -m state --state NEW,ESTABLISHED -j UDP
 done
 
 #----------------------------------------------------
 #Inbound/Outbound ICMP packets based on type numbers
-for element in "${ICMParray[@]}"
+for i in "${ICMParray[@]}"
 do
-	iptables -A FORWARD -i $intnic -o $extnic -p icmp --icmp-type $element -j ICMP_In
-	iptables -A FORWARD -i $extnic -o $intnic -p icmp --icmp-type $element -j ICMP_Out
+	iptables -A FORWARD -i $intnic -o $extnic -p icmp --icmp-type $i -j ICMP
+	iptables -A FORWARD -i $extnic -o $intnic -p icmp --icmp-type $i -j ICMP
 done
 
 #----------------------------------------------------
