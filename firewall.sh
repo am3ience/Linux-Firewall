@@ -2,14 +2,26 @@
 
 ### User Configuration ###
 
-echo "What is the internal subnet of your network? ex.) 192.168.1.0/24"
+echo "What's the internal subnet of your network? ex.) 192.168.1.0/24"
 read subnet
 
-echo "What is the name of your internal network card? ex.) eno0"
+echo "What's the name of your internal network card? ex.) eno0"
 read intnic
 
-echo "What is the name of your external network card? ex.) eno1"
+echo "What's the name of your external network card? ex.) eno1"
 read extnic
+
+echo "What TCP service ports would you like to be allowed on the firewall? (list seperated by spaces)"
+echo "ex.) 80 443 HTTP and HTTPS"
+read TCParray
+
+echo "What UDP service ports would you like to be allowed on the firewall? (list seperated by spaces)"
+echo "ex.) 53 68 DNS and DHCP"
+read UDParray
+
+echo "What ICMP service type numbers would you like to be allowed on the firewall? (list seperated by spaces)"
+echo "ex.) 0 3 8 Echo Reply, Destination Unreachable, and Echo"
+read ICMParray
 
 ### /User Configuration ###
 
@@ -85,6 +97,34 @@ iptables -A PREROUTING -t mangle -p tcp --sport 22 -j TOS --set-tos Minimize-Del
 #FTP data to "Maximum Throughput"
 iptables -A PREROUTING -t mangle -p tcp --dport 20 -j TOS --set-tos Maximize-Throughput
 iptables -A PREROUTING -t mangle -p tcp --sport 20 -j TOS --set-tos Maximize-Throughput
+
+#----------------------------------------------------
+#Inbound/Outbound TCP packets on allowed ports
+for element in "${TCParray[@]}"
+do
+	iptables -A FORWARD -i $intnic -o $extnic -p tcp --dport $element -m state --state NEW,ESTABLISHED -j TCP
+	iptables -A FORWARD -i $extnic -o $intnic -p tcp --sport $element -m state --state NEW,ESTABLISHED -j TCP
+	iptables -A FORWARD -i $intnic -o $extnic -p tcp --sport $element -m state --state NEW,ESTABLISHED -j TCP
+	iptables -A FORWARD -i $extnic -o $intnic -p tcp --dport $element -m state --state NEW,ESTABLISHED -j TCP
+done
+
+#----------------------------------------------------
+#Inbound/Outbound UDP packets on allowed ports
+for element in "${UDParray[@]}"
+do
+	iptables -A FORWARD -i $intnic -o $extnic -p udp --dport $element -m state --state NEW,ESTABLISHED-j UDP
+	iptables -A FORWARD -i $extnic -o $intnic -p udp --sport $element -m state --state NEW,ESTABLISHED-j UDP
+	iptables -A FORWARD -i $intnic -o $extnic -p udp --sport $element -m state --state NEW,ESTABLISHED-j UDP
+	iptables -A FORWARD -i $extnic -o $intnic -p udp --dport $element -m state --state NEW,ESTABLISHED-j UDP
+done
+
+#----------------------------------------------------
+#Inbound/Outbound ICMP packets based on type numbers
+for element in "${ICMParray[@]}"
+do
+	iptables -A FORWARD -i $intnic -o $extnic -p icmp --icmp-type $element -j ICMP_In
+	iptables -A FORWARD -i $extnic -o $intnic -p icmp --icmp-type $element -j ICMP_Out
+done
 
 #----------------------------------------------------
 #Allow inbound/outbound DHCP
