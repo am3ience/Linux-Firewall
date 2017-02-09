@@ -2,14 +2,14 @@
 
 ### User Configuration ###
 
-echo "What is the internal subnet of your network? (eg. 192.168.1.0/24)"
+echo "What is the internal subnet of your network? ex.) 192.168.1.0/24"
 read subnet
 
-echo "What is the name of your internal network card? (eg. eno0)"
-read internal
+echo "What is the name of your internal network card? ex.) eno0"
+read intnic
 
-echo "What is the name of your external network card? (eg. eno1)"
-read external
+echo "What is the name of your external network card? ex.) eno1"
+read extnic
 
 ### /User Configuration ###
 
@@ -28,16 +28,21 @@ iptables -P OUTPUT DROP
 iptables -P FORWARD DROP
 
 #User Defined chain
-iptables -N ssh
-iptables -N www
-iptables -N otherdrop
-iptables -N otheraccept
+iptables -N TCP
+iptables -N UDP
+iptables -N ICMP
 
+iptables -A TCP -j ACCEPT
+iptables -A UDP -j ACCEPT
+iptables -A ICMP -j ACCEPT
 
-iptables -A ssh -j ACCEPT
-iptables -A www -j ACCEPT
-iptables -A otherdrop -j DROP
-iptables -A otheraccept -j ACCEPT
+#--------------------------------------------------
+#Drop all packets destined for the firewall host from the outside
+iptables -A INPUT -i $extnic -j DROP
+
+#--------------------------------------------------
+#Do not accept any packets with a source address from the outside matching your internal network. 
+iptables -A FORWARD -i $extnic -s $subnet -j DROP
 
 #---------------------------------------------------
 #Drop all TCP packets with the SYN and FIN bit set.
