@@ -84,10 +84,6 @@ iptables -A FORWARD -i $extnic -o $intnic -p tcp --dport 515 -j DROP
 iptables -A FORWARD -i $extnic -o $intnic -p tcp --tcp-flags ALL SYN ! --dport 0:1023 -j DROP
 
 #---------------------------------------------------
-#Accept Fragments
-iptables -A FORWARD -f -j ACCEPT
-
-#---------------------------------------------------
 #For FTP and SSH services, set control connections to "Minimum Delay" and FTP data to "Maximum Throughput"
 #FTP Data
 iptables -A PREROUTING -t mangle -p tcp --dport 20 -j TOS --set-tos Minimize-Delay
@@ -130,6 +126,10 @@ do
 	iptables -A FORWARD -i $intnic -o $extnic -p icmp --icmp-type $i -j ICMP
 	iptables -A FORWARD -i $extnic -o $intnic -p icmp --icmp-type $i -j ICMP
 done
+
+#---------------------------------------------------
+#Accept Fragments
+iptables -A FORWARD -f -j ACCEPT
 
 #----------------------------------------------------
 #Allow inbound/outbound DHCP
