@@ -2,26 +2,26 @@
 
 ### User Configuration ###
 
-echo "What's the internal subnet of your network? ex.) 192.168.1.0/24"
-read subnet
+#"What's the internal subnet of your network? ex.) 10.0.0.0/24"
+subnet='10.0.0.0/24'
 
-echo "What's the name of your internal network card? ex.) eno0"
-read intnic
+#"What's the name of your internal network card? ex.) enp3s2"
+intnic='enp3s2'
 
-echo "What's the name of your external network card? ex.) eno1"
-read extnic
+#"What's the name of your external network card? ex.) eno1"
+extnic='eno1'
 
-echo "What TCP service ports would you like to be allowed on the firewall? (list seperated by spaces)"
-echo "ex.) 80 443 HTTP and HTTPS"
-read -a TCParray
+#"What TCP service ports would you like to be allowed on the firewall? (list seperated by spaces)"
+#"ex.) 80 443 53 22 67 68 HTTP, HTTPS, DNS"
+TCParray=(80 443 53 22 67 68)
 
-echo "What UDP service ports would you like to be allowed on the firewall? (list seperated by spaces)"
-echo "ex.) 53 68 DNS and DHCP"
-read -a UDParray
+#"What UDP service ports would you like to be allowed on the firewall? (list seperated by spaces)"
+#"ex.) 53 68 67 80 443 DNS and DHCP"
+UDParray=(53 68 67 80 443)
 
-echo "What ICMP service type numbers would you like to be allowed on the firewall? (list seperated by spaces)"
-echo "ex.) 0 3 8 Echo Reply, Destination Unreachable, and Echo"
-read -a ICMParray
+#"What ICMP service type numbers would you like to be allowed on the firewall? (list seperated by spaces)"
+#"ex.) 0 3 8 Echo Reply, Destination Unreachable, and Echo"
+ICMParray=(0 3 8)
 
 ### /User Configuration ###
 
@@ -47,6 +47,11 @@ iptables -N ICMP
 iptables -A TCP -j ACCEPT
 iptables -A UDP -j ACCEPT
 iptables -A ICMP -j ACCEPT
+
+#--------------------------------------------------
+#Firewall Routing
+iptables -t nat -A POSTROUTING -s 10.0.0.0/24 -o eno1 -j SNAT --to-source 192.168.0.12
+iptables -t nat -A PREROUTING -i eno1 -j DNAT --to-destination 10.0.0.1
 
 #--------------------------------------------------
 #Drop all packets destined for the firewall host from the outside
@@ -112,10 +117,10 @@ done
 #Inbound/Outbound UDP packets on allowed ports
 for n in "${UDParray[@]}"
 do
-	iptables -A FORWARD -i $intnic -o $extnic -p udp --dport $n -m state --state NEW,ESTABLISHED -j UDP
-	iptables -A FORWARD -i $extnic -o $intnic -p udp --sport $n -m state --state NEW,ESTABLISHED -j UDP
-	iptables -A FORWARD -i $intnic -o $extnic -p udp --sport $n -m state --state NEW,ESTABLISHED -j UDP
-	iptables -A FORWARD -i $extnic -o $intnic -p udp --dport $n -m state --state NEW,ESTABLISHED -j UDP
+	iptables -A FORWARD -i $intnic -o $extnic -p udp --dport $n -j UDP
+	iptables -A FORWARD -i $extnic -o $intnic -p udp --sport $n -j UDP
+	iptables -A FORWARD -i $intnic -o $extnic -p udp --sport $n -j UDP
+	iptables -A FORWARD -i $extnic -o $intnic -p udp --dport $n -j UDP
 done
 
 #----------------------------------------------------
@@ -128,17 +133,17 @@ done
 
 #----------------------------------------------------
 #Allow inbound/outbound DHCP
-#iptables -A OUTPUT -p udp --dport 68 -j otheraccept
-#iptables -A INPUT -p udp --sport 68 -j otheraccept
-#iptables -A OUTPUT -p tcp --dport 68 -j otheraccept
-#iptables -A INPUT -p tcp --sport 68 -j otheraccept
+#iptables -A OUTPUT -p udp --dport 68 -j ACCEPT
+#iptables -A INPUT -p udp --sport 68 -j ACCEPT
+#iptables -A OUTPUT -p tcp --dport 68 -j ACCEPT
+#iptables -A INPUT -p tcp --sport 68 -j ACCEPT
 
 #----------------------------------------------------
 #Allow inbound/outbound DNS
-#iptables -A OUTPUT -p udp --dport 53 -j otheraccept
-#iptables -A INPUT -p udp --sport 53 -j otheraccept
-#iptables -A OUTPUT -p tcp --dport 53 -j otheraccept
-#iptables -A INPUT -p tcp --sport 53 -j otheraccept
+#iptables -A OUTPUT -p udp --dport 53 -j ACCEPT
+#iptables -A INPUT -p udp --sport 53 -j ACCEPT
+#iptables -A OUTPUT -p tcp --dport 53 -j ACCEPT
+#iptables -A INPUT -p tcp --sport 53 -j ACCEPT
 
 #---------------------------------------------------
 #save then restart the iptables
